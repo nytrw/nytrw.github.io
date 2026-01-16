@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Search Results - Nytrw</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="images/favicon.ico" type="image/x-icon" />
+</head>
+<body>
+  <div class="search-result-area">
+    <a href="index.html">
+      <img class="search-logo-result" src="images/logo.png" />
+    </a>
+    <form class="search-form" id="search-form" autocomplete="off">
+      <div class="search-form-input">
+        <img
+        class="search-icon-home"
+        src="images/nytrwlogo.svg"
+        style="width: 50px; height: auto;"
+        onclick="window.location.href='index.html'"
+      />
+        <input type="text" id="search-input" />
+                <img
+            class="search-icon-home"
+            src="images/google_search_icon.svg"
+          />
+      </div>
+    </form>
+  </div>
+
+  <div id="results-summary"></div>
+  <div id="results"></div>
+  <div id="pagination"></div>
+
+  <script>
+let allData = [];
+let filteredData = [];
+let currentPage = 1;
+const pageSize = 10;
+
+// Load local JSON
+fetch('results/results.json')
+  .then(res => res.json())
+  .then(data => {
+    allData = data;
+    fetchResults();
+  })
+  .catch(err => console.error("Failed to load JSON:", err));
+
+// Helper: check if input looks like a URL
+function isLikelyURL(input) {
+  const urlPattern = /^(https?:\/\/)?([\w-]+\.)+[\w-]{2,}(\/.*)?$/i;
+  return urlPattern.test(input);
+}
+
+// Fetch DuckDuckGo Instant Answer results
+async function fetchDuckDuckGoResults(query) {
+  if (!query) return [];
+
+  const url = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_redirect=1&no_html=1`;
+
+  try {
+    const res = await fetch(url);
+    const data = await res.json();
+    const results = [];
+
+    if (data.RelatedTopics) {
+      data.RelatedTopics.forEach(item => {
+        if (item.FirstURL && item.Text) {
+          results.push({
+            title: item.Text,
+            url: item.FirstURL,
+            description: item.Text,
+            source: 'DuckDuckGo'
+          });
+        }
+        if (item.Topics) {
+          item.Topics.forEach(sub => {
+            if (sub.FirstURL && sub.Text) {
+              results.push({
+                title: sub.Text,
+                url: sub.FirstURL,
+                description: sub.Text,
+                source: 'DuckDuckGo'
+              });
+            }
+          });
+        }
+      });
+    }
+
+    return results;
+  } catch (err) {
+    console.error("DuckDuckGo fetch failed:", err);
+    return [];
+  }
+}
+
+// Fetch results based on query
+async function fetchResults() {
+  const urlParams = new URLSearchParams(window.location.search);
+  let query = urlParams.get('search')?.trim() || '';
+  document.getElementById('search-input').value = query;
+
+  // Auto-redirect if query is a URL
+  if (isLikelyURL(query)) {
+    if (!query.startsWith('http://') && !query.startsWith('https://')) {
+      query = 'https://' + query;
+    }
+    window.location.href = query;
+    return;
+  }
+
+  // Filter local JSON
+  const localResults = allData
+    .filter(item =>
+      (item.title || '').toLowerCase().includes(query.toLowerCase()) ||
+      (item.description || '').toLowerCase().includes(query.toLowerCase()) ||
+      (item.url || '').toLowerCase().includes(query.toLowerCase())
+    )
+    .map(item => ({ ...item, source: 'Nytrw' }));
+
+  // Fetch DuckDuckGo results
+  const ddgResults = await fetchDuckDuckGoResults(query);
+
+  // Combine results
+  filteredData = [...localResults, ...ddgResults];
+  currentPage = 1;
+
+  render();
+}
+
+// Render results
+function render() {
+  const resultsDiv = document.getElementById('results');
+  const summaryDiv = document.getElementById('results-summary');
+  resultsDiv.innerHTML = '';
+  summaryDiv.innerHTML = '';
+
+  if (filteredData.length === 0) {
+    summaryDiv.innerHTML = `<p>No results found for "<strong>${document.getElementById('search-input').value}</strong>"</p>`;
+    document.getElementById('pagination').innerHTML = '';
+    return;
+  }
+
+  const start = (currentPage - 1) * pageSize;
+  const end = start + pageSize;
+  const pageData = filteredData.slice(start, end);
+
+  summaryDiv.innerHTML = `<p><strong>${filteredData.length}</strong> results found for "<strong>${document.getElementById('search-input').value}</strong>"</p>`;
+
+  pageData.forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'result';
+
+    let domain = '';
+    try { domain = item.url ? new URL(item.url).hostname : ''; } catch {}
+
+    div.innerHTML = `
+      <div style="display:flex; align-items:center; gap:8px;">
+        <img src="https://www.google.com/s2/favicons?domain=${domain}&sz=32" width="16" height="16">
+        <a href="${item.url}" target="_blank" class="result-title">
+          ${item.title || item.url}
+        </a>
+        <span style="font-size:0.75rem; color:#8f34a1;">(${item.source})</span>
+      </div>
+      <div class="result-url">${item.url || ''}</div>
+      <div class="result-description">${item.description || 'No description available.'}</div>
+    `;
+    resultsDiv.appendChild(div);
+  });
+
+  renderPagination();
+}
+
+// Render pagination
+function renderPagination() {
+  const pages = Math.ceil(filteredData.length / pageSize);
+  const pagination = document.getElementById('pagination');
+  pagination.innerHTML = '';
+  if (pages <= 1) return;
+
+  if (currentPage > 1) {
+    const prev = document.createElement('button');
+    prev.textContent = 'Previous';
+    prev.onclick = () => { currentPage--; render(); };
+    pagination.appendChild(prev);
+  }
+
+  const pageInfo = document.createElement('span');
+  pageInfo.textContent = ` Page ${currentPage} of ${pages} `;
+  pagination.appendChild(pageInfo);
+
+  if (currentPage < pages) {
+    const next = document.createElement('button');
+    next.textContent = 'Next';
+    next.onclick = () => { currentPage++; render(); };
+    pagination.appendChild(next);
+  }
+}
+
+// Handle search form submission
+document.getElementById('search-form').addEventListener('submit', function(e) {
+  e.preventDefault();
+  let query = document.getElementById('search-input').value.trim();
+  if (!query) return;
+
+  // Redirect if it's a URL
+  if (isLikelyURL(query)) {
+    if (!query.startsWith('http://') && !query.startsWith('https://')) {
+      query = 'https://' + query;
+    }
+    window.location.href = query;
+    return;
+  }
+
+  // Otherwise, search
+  window.location.search = `?search=${encodeURIComponent(query)}`;
+});
+</script>
+
+
+</body>
+</html>

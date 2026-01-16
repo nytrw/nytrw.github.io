@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nytrw</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="images/favicon.ico" type="image/x-icon" />
+</head>
+<body>
+  <div class="top-section">
+    <div class="left-side">
+      <a href="aboutus.html">About</a>
+    </div>
+    <div class="right-side">
+      <a href="https://gmail.com/">Gmail</a>
+      <a href="https://images.google.com/">Images</a>
+      <img class="app-icon" src="https://cdn3.iconfinder.com/data/icons/feather-5/24/more-vertical-512.png" />
+      <img class="profile-pic" src="images/user_pic.png" />
+    </div>
+  </div>
+
+  <div class="middle-section">
+    <a href="index.html">
+      <img class="search-logo-home" src="images/logo.png" />
+    </a>
+    <form class="search-form" id="search-form" autocomplete="off">
+      <div class="search-form-input">
+      <img
+        class="search-icon-home"
+        src="images/nytrwlogo.svg"
+        style="width: 50px; height: auto;"
+        onclick="window.location.href='index.html'"
+      />
+
+        <input type="text" id="search-input" placeholder="Search Nytrw…" />
+        <img
+            class="search-icon-home"
+            src="images/google_search_icon.svg"
+          />
+      </div>
+      <div class="buttons">
+        <button type="submit">Nytrw</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="bottom-section">
+    <div class="bottom-left">
+      <a href="https://ads.google.com/">(fake) Advertising</a>
+      <a href="https://smallbusiness.withgoogle.com/#!/">(fake) Business</a>
+      <a href="https://www.google.com/search/howsearchworks/?fg=1">(fake) How Search works</a>
+    </div>
+    <div class="bottom-middle">
+      <a href="https://sustainability.google/carbon-free/#home">(fake) Carbon Neutral since 2007</a>
+    </div>
+    <div class="bottom-right">
+      <a href="https://policies.google.com/privacy?hl=en&fg=1">(fake) Privacy</a>
+      <a href="https://policies.google.com/terms?hl=en&fg=1">(fake) Terms</a>
+      <a href="https://www.google.com/settings">(fake) Settings</a>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('search-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const query = document.getElementById('search-input').value.trim();
+      if (!query) return;
+      // Navigate to results page with query as parameter
+      window.location.href = `search.html?search=${encodeURIComponent(query)}`;
+    });
+  </script>
+</body>
+</html>
